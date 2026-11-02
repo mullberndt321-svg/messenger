@@ -1,146 +1,533 @@
-<!doctype html>
-<html lang="de">
+<!DOCTYPE html>
+<html lang="de" class="h-full bg-slate-900 text-slate-100">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Messenger</title>
-<style>
-  :root {
-    --bg: #f3f5f7; --panel: #ffffff; --ink: #14202b; --muted: #6a7885;
-    --line: #dde3e8; --me: #0f6b5c; --me-ink: #ffffff; --other: #e9eef2;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0e1418; --panel: #151d23; --ink: #e6edf2; --muted: #8a99a6;
-      --line: #25313a; --me: #1f9a84; --me-ink: #04201a; --other: #1f2a32;
-    }
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body { background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, sans-serif; display: flex; justify-content: center; }
-  .app { width: 100%; max-width: 720px; height: 100%; display: flex; flex-direction: column; background: var(--panel); border-inline: 1px solid var(--line); }
-  header { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
-  header h1 { font-size: 1.05rem; margin: 0; flex: 1; }
-  .status { font-size: .85rem; color: var(--muted); }
-  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #c0392b; margin-right: 6px; }
-  .dot.on { background: #2ecc71; }
-  #log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-  .msg { max-width: 80%; padding: 8px 12px; border-radius: 14px; background: var(--other); overflow-wrap: anywhere; white-space: pre-wrap; }
-  .msg.me { align-self: flex-end; background: var(--me); color: var(--me-ink); }
-  .meta { display: block; font-size: .75rem; opacity: .7; margin-bottom: 2px; }
-  .empty { color: var(--muted); text-align: center; margin: auto; }
-  form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
-  input, textarea, button { font: inherit; color: inherit; }
-  textarea { flex: 1; resize: none; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); max-height: 120px; }
-  button { padding: 10px 18px; border: 0; border-radius: 12px; background: var(--me); color: var(--me-ink); cursor: pointer; font-weight: 600; }
-  button:disabled { opacity: .5; cursor: default; }
-  :focus-visible { outline: 2px solid var(--me); outline-offset: 2px; }
-  #join { margin: auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; width: min(360px, 100%); }
-  #join h2 { margin: 0 0 4px; }
-  #join input { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
-  #join label { font-size: .85rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
-  .hidden { display: none !important; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signalgram Messenger</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
-<body>
-<div class="app">
-  <header>
-    <h1 id="title">Messenger</h1>
-    <span class="status"><span id="dot" class="dot"></span><span id="status">Nicht verbunden</span></span>
-  </header>
+<body class="h-full flex flex-col font-sans antialiased bg-slate-900 text-slate-100 selection:bg-sky-500 selection:text-white">
 
-  <form id="join">
-    <h2>Chat beitreten</h2>
-    <label>Dein Name <input id="name" maxlength="24" required autocomplete="nickname"></label>
-    <label>Raum <input id="room" maxlength="32" value="lobby" required></label>
-    <button type="submit">Beitreten</button>
-  </form>
+  <!-- AUTH SCREEN -->
+  <div id="authScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+    <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-6 space-y-6">
+      
+      <!-- Brand Header -->
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 mx-auto bg-gradient-to-tr from-sky-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <i class="fa-solid font-bold fa-paper-plane text-2xl text-white"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">Signalgram Live</h1>
+        <p class="text-xs text-slate-400">Authentifizierung & Echtzeit-Messaging über Firebase</p>
+      </div>
 
-  <div id="log" class="hidden" aria-live="polite"></div>
-  <form id="send" class="hidden">
-    <textarea id="text" rows="1" placeholder="Nachricht schreiben" maxlength="2000" required></textarea>
-    <button type="submit" id="sendBtn" disabled>Senden</button>
-  </form>
-</div>
+      <!-- Auth Tabs -->
+      <div class="flex border-b border-slate-800 text-sm font-medium text-center text-slate-400">
+        <button id="authTabLogin" class="flex-1 py-2 border-b-2 border-sky-500 text-sky-400">Anmelden</button>
+        <button id="authTabRegister" class="flex-1 py-2 border-b-2 border-transparent hover:text-slate-200">Registrieren</button>
+      </div>
 
-<script>
-const $ = (id) => document.getElementById(id);
-let ws, name, room, retry = 0, seen = new Set();
+      <!-- Auth Error Alert -->
+      <div id="authError" class="hidden p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-xs rounded-lg text-center"></div>
 
-$("name").value = localStorage.getItem("name") || "";
-const hashRoom = location.hash.slice(1);
-if (hashRoom) $("room").value = hashRoom;
+      <!-- Login Form -->
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Benutzername</label>
+          <input type="text" id="loginUsername" required placeholder="z. B. MaxMustermann" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:border-sky-500 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Passwort</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:border-sky-500 text-sm">
+        </div>
+        <button type="submit" class="w-full py-3 bg-sky-500 hover:bg-sky-400 font-semibold rounded-xl transition shadow-lg shadow-sky-500/20 text-white">Anmelden</button>
+      </form>
 
-$("join").addEventListener("submit", (e) => {
-  e.preventDefault();
-  name = $("name").value.trim();
-  room = $("room").value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "") || "lobby";
-  localStorage.setItem("name", name);
-  location.hash = room;
-  $("join").classList.add("hidden");
-  $("log").classList.remove("hidden");
-  $("send").classList.remove("hidden");
-  $("title").textContent = "# " + room;
-  connect();
-  $("text").focus();
-});
+      <!-- Register Form -->
+      <form id="registerForm" class="hidden space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Benutzername</label>
+          <input type="text" id="regUsername" required placeholder="z. B. MaxMustermann" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:border-sky-500 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Passwort wählen</label>
+          <input type="password" id="regPassword" required placeholder="Mindestens 6 Zeichen" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl focus:outline-none focus:border-sky-500 text-sm">
+        </div>
+        <button type="submit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 font-semibold rounded-xl transition shadow-lg shadow-emerald-500/20 text-white">Konto erstellen</button>
+      </form>
 
-function setStatus(on, text) {
-  $("dot").classList.toggle("on", on);
-  $("status").textContent = text;
-  $("sendBtn").disabled = !on;
-}
+      <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-slate-800"></div>
+        <span class="flex-shrink mx-4 text-xs text-slate-500 font-bold">ODER</span>
+        <div class="flex-grow border-t border-slate-800"></div>
+      </div>
 
-function connect() {
-  const proto = location.protocol === "https:" ? "wss" : "ws";
-  ws = new WebSocket(`${proto}://${location.host}/ws?room=${encodeURIComponent(room)}`);
-  ws.onopen = () => { retry = 0; setStatus(true, "Verbunden"); };
-  ws.onclose = () => {
-    setStatus(false, "Verbindung getrennt, neuer Versuch …");
-    setTimeout(connect, Math.min(1000 * 2 ** retry++, 15000));
-  };
-  ws.onmessage = (e) => {
-    const d = JSON.parse(e.data);
-    if (d.type === "history") { $("log").innerHTML = ""; seen.clear(); d.messages.forEach(add); if (!d.messages.length) empty(); }
-    else if (d.type === "msg") { document.querySelector(".empty")?.remove(); add(d); }
-    else if (d.type === "count") $("status").textContent = `Verbunden · ${d.count} online`;
-  };
-}
+      <!-- Guest Login Button -->
+      <button id="guestBtn" type="button" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl text-sm border border-slate-700 transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-user-ninja"></i> Als Gast fortfahren
+      </button>
 
-function empty() {
-  const p = document.createElement("p");
-  p.className = "empty"; p.textContent = "Noch keine Nachrichten. Schreib die erste.";
-  $("log").append(p);
-}
+    </div>
+  </div>
 
-function add(m) {
-  if (seen.has(m.id)) return;
-  seen.add(m.id);
-  const el = document.createElement("div");
-  el.className = "msg" + (m.name === name ? " me" : "");
-  const meta = document.createElement("span");
-  meta.className = "meta";
-  meta.textContent = `${m.name} · ${new Date(m.ts).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}`;
-  const body = document.createElement("span");
-  body.textContent = m.text;
-  el.append(meta, body);
-  const log = $("log");
-  const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
-  log.append(el);
-  if (atBottom || m.name === name) log.scrollTop = log.scrollHeight;
-}
+  <!-- MAIN MESSENGER INTERFACE -->
+  <div id="appContainer" class="flex-1 flex overflow-hidden opacity-30 pointer-events-none transition-all duration-300">
+    
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-80 bg-slate-950 border-r border-slate-800 flex flex-col flex-shrink-0 z-20">
+      
+      <!-- User Profile Header -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="userAvatar" class="w-10 h-10 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-lg">U</div>
+          <div class="overflow-hidden">
+            <h2 id="userDisplayName" class="font-bold text-sm truncate">Lädt...</h2>
+            <span id="userHandle" class="text-xs text-sky-400 truncate block">@online</span>
+          </div>
+        </div>
+        <button id="logoutBtn" title="Abmelden" class="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-900 rounded-lg transition">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
 
-$("send").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const text = $("text").value.trim();
-  if (!text || ws.readyState !== 1) return;
-  ws.send(JSON.stringify({ type: "msg", name, text }));
-  $("text").value = "";
-});
+      <!-- Navigation Tabs / Search -->
+      <div class="p-3">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+          <input type="text" placeholder="Suchen..." class="w-full pl-9 pr-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-xs focus:outline-none focus:border-sky-500">
+        </div>
+      </div>
 
-$("text").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("send").requestSubmit(); }
-});
-</script>
+      <!-- Rooms / Users Lists -->
+      <div class="flex-1 overflow-y-auto space-y-4 px-3 py-2">
+        
+        <!-- Channels -->
+        <div>
+          <div class="px-2 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Räume</div>
+          <div class="space-y-1">
+            <button data-chat-id="room_allgemein" class="chat-select-btn w-full px-3 py-2 rounded-xl text-left text-sm flex items-center gap-3 bg-sky-500/10 text-sky-400 font-medium">
+              <i class="fa-solid fa-hashtag text-slate-400"></i> Allgemein
+            </button>
+            <button data-chat-id="room_offtopic" class="chat-select-btn w-full px-3 py-2 rounded-xl text-left text-sm flex items-center gap-3 hover:bg-slate-900 text-slate-300">
+              <i class="fa-solid fa-hashtag text-slate-400"></i> Off-Topic
+            </button>
+            <button data-chat-id="room_support" class="chat-select-btn w-full px-3 py-2 rounded-xl text-left text-sm flex items-center gap-3 hover:bg-slate-900 text-slate-300">
+              <i class="fa-solid fa-hashtag text-slate-400"></i> Support
+            </button>
+          </div>
+        </div>
+
+        <!-- Direct Messages / Active Users -->
+        <div>
+          <div class="flex items-center justify-between px-2 mb-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span>Direktnachrichten</span>
+            <span id="userCount" class="bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded text-[10px]">0</span>
+          </div>
+          <div id="dmsList" class="space-y-1">
+            <!-- Dynamic users list rendered via JS -->
+          </div>
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- CHAT MAIN CONTENT AREA -->
+    <main class="flex-1 flex flex-col bg-slate-900 relative">
+      
+      <!-- Chat Header -->
+      <header class="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-sky-400 font-bold">
+            <i id="currentChatIcon" class="fa-solid fa-hashtag"></i>
+          </div>
+          <div>
+            <h3 id="currentChatTitle" class="font-bold text-sm">Allgemein</h3>
+            <span id="currentChatSub" class="text-xs text-slate-500">Öffentlicher Gruppenraum</span>
+          </div>
+        </div>
+
+        <!-- Call & Action Buttons -->
+        <div class="flex items-center gap-2">
+          <button id="startCallBtn" class="p-2.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-xl transition">
+            <i class="fa-solid fa-phone"></i>
+          </button>
+          <button id="startVideoBtn" class="p-2.5 text-slate-400 hover:text-sky-400 hover:bg-slate-800 rounded-xl transition">
+            <i class="fa-solid fa-video"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Messages Stream -->
+      <div id="messagesStream" class="flex-1 overflow-y-auto p-6 space-y-4">
+        <!-- Messages rendered dynamically -->
+      </div>
+
+      <!-- Input Toolbar / Message Box -->
+      <footer class="p-4 bg-slate-900 border-t border-slate-800">
+        <form id="chatForm" class="flex items-end gap-2 bg-slate-800 border border-slate-700/60 rounded-2xl p-2 focus-within:border-sky-500/80 transition">
+          <input type="file" id="fileInput" class="hidden">
+          <button type="button" onclick="document.getElementById('fileInput').click()" class="p-2 text-slate-400 hover:text-sky-400 rounded-xl transition">
+            <i class="fa-solid fa-paperclip text-lg"></i>
+          </button>
+
+          <textarea id="msgInput" rows="1" placeholder="Schreibe eine Nachricht..." class="flex-1 bg-transparent py-2 px-1 focus:outline-none text-sm resize-none max-h-32 text-slate-100 placeholder-slate-500"></textarea>
+
+          <button type="submit" class="p-2.5 bg-sky-500 hover:bg-sky-400 text-white rounded-xl transition shadow-md shadow-sky-500/20">
+            <i class="fa-solid fa-paper-plane text-sm"></i>
+          </button>
+        </form>
+      </footer>
+
+    </main>
+
+  </div>
+
+  <!-- CALL OVERLAY (WebRTC Simulation) -->
+  <div id="callOverlay" class="hidden fixed inset-0 z-50 bg-slate-950/95 flex flex-col items-center justify-between p-8 backdrop-blur-lg">
+    <div class="text-center space-y-2 mt-8">
+      <div class="w-24 h-24 mx-auto rounded-full bg-slate-800 border-2 border-sky-500 flex items-center justify-center text-4xl text-sky-400 shadow-xl shadow-sky-500/10">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <h2 id="callTargetName" class="text-2xl font-bold">Anruf...</h2>
+      <p id="callStatusText" class="text-sm text-slate-400">Verbindung wird aufgebaut...</p>
+    </div>
+
+    <!-- Video element for local stream -->
+    <video id="localVideo" autoplay playsinline muted class="w-64 h-48 bg-slate-900 border border-slate-800 rounded-2xl object-cover shadow-2xl hidden"></video>
+
+    <!-- Call Controls -->
+    <div class="flex items-center gap-6 mb-8">
+      <button id="toggleMicBtn" class="w-14 h-14 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-xl transition">
+        <i class="fa-solid fa-microphone"></i>
+      </button>
+      <button id="endCallBtn" class="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-red-500/30 transition">
+        <i class="fa-solid fa-phone-slash"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- FIREBASE CONFIG & APP LOGIC -->
+  <script>
+    // Embedded Firebase Configuration for Canvas Sandbox
+    const firebaseConfig = {
+      apiKey: "AIzaSyDummyCanvasKey_Signalgram2026",
+      authDomain: "canvas-signalgram.firebaseapp.com",
+      projectId: "canvas-signalgram",
+      storageBucket: "canvas-signalgram.appspot.com",
+      messagingSenderId: "1029384756",
+      appId: "1:1029384756:web:abcd1234efgh"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // App State Variables
+    let currentUser = null;
+    let activeChatId = 'room_allgemein';
+    let mediaStream = null;
+
+    // Helper: Map Username to internal dummy Email format for Auth compatibility
+    function usernameToEmail(username) {
+      return `${username.trim().toLowerCase().replace(/[^a-z0-9_]/g, '')}@messenger.app`;
+    }
+
+    // Canvas Safe Collection Path Helper
+    function getPublicCollectionPath(collectionName) {
+      const appId = typeof __canvas_app_id !== 'undefined' ? __canvas_app_id : 'default_app';
+      return `artifacts/${appId}/public/data/${collectionName}`;
+    }
+
+    // DOM Elements
+    const authScreen = document.getElementById('authScreen');
+    const appContainer = document.getElementById('appContainer');
+    const authError = document.getElementById('authError');
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const authTabLogin = document.getElementById('authTabLogin');
+    const authTabRegister = document.getElementById('authTabRegister');
+    const messagesStream = document.getElementById('messagesStream');
+    const chatForm = document.getElementById('chatForm');
+    const msgInput = document.getElementById('msgInput');
+    const dmsList = document.getElementById('dmsList');
+    const userCount = document.getElementById('userCount');
+
+    // UI Tab Toggle Logic
+    authTabLogin.addEventListener('click', () => {
+      loginForm.classList.remove('hidden');
+      registerForm.classList.add('hidden');
+      authTabLogin.className = 'flex-1 py-2 border-b-2 border-sky-500 text-sky-400 font-medium';
+      authTabRegister.className = 'flex-1 py-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200';
+      authError.classList.add('hidden');
+    });
+
+    authTabRegister.addEventListener('click', () => {
+      registerForm.classList.remove('hidden');
+      loginForm.classList.add('hidden');
+      authTabRegister.className = 'flex-1 py-2 border-b-2 border-sky-500 text-sky-400 font-medium';
+      authTabLogin.className = 'flex-1 py-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200';
+      authError.classList.add('hidden');
+    });
+
+    // Username Login
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authError.classList.add('hidden');
+      const usernameInput = document.getElementById('loginUsername').value;
+      const passwordInput = document.getElementById('loginPassword').value;
+      const authEmail = usernameToEmail(usernameInput);
+
+      try {
+        await auth.signInWithEmailAndPassword(authEmail, passwordInput);
+      } catch (err) {
+        authError.textContent = "Anmeldung fehlgeschlagen: Überprüfe deinen Benutzernamen und dein Passwort.";
+        authError.classList.remove('hidden');
+      }
+    });
+
+    // Username Registration
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      authError.classList.add('hidden');
+      const usernameInput = document.getElementById('regUsername').value;
+      const passwordInput = document.getElementById('regPassword').value;
+
+      if (usernameInput.length < 3) {
+        authError.textContent = "Der Benutzername muss mindestens 3 Zeichen lang sein.";
+        authError.classList.remove('hidden');
+        return;
+      }
+
+      const authEmail = usernameToEmail(usernameInput);
+
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(authEmail, passwordInput);
+        await cred.user.updateProfile({ displayName: usernameInput });
+        
+        // Save user profile in Firestore
+        await db.collection(getPublicCollectionPath('users')).doc(cred.user.uid).set({
+          uid: cred.user.uid,
+          displayName: usernameInput,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+      } catch (err) {
+        authError.textContent = err.message || "Registrierung fehlgeschlagen.";
+        authError.classList.remove('hidden');
+      }
+    });
+
+    // Guest Auth
+    document.getElementById('guestBtn').addEventListener('click', async () => {
+      try {
+        const guestName = 'Gast_' + Math.floor(Math.random() * 8999 + 1000);
+        const cred = await auth.signInAnonymously();
+        await cred.user.updateProfile({ displayName: guestName });
+
+        await db.collection(getPublicCollectionPath('users')).doc(cred.user.uid).set({
+          uid: cred.user.uid,
+          displayName: guestName,
+          isGuest: true,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (err) {
+        authError.textContent = "Gast-Anmeldung nicht möglich.";
+        authError.classList.remove('hidden');
+      }
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+    // Auth State Observer
+    auth.onAuthStateChanged((user) => {
+      currentUser = user;
+      if (user) {
+        authScreen.classList.add('hidden');
+        appContainer.classList.remove('opacity-30', 'pointer-events-none');
+
+        const name = user.displayName || 'Benutzer';
+        document.getElementById('userDisplayName').textContent = name;
+        document.getElementById('userHandle').textContent = `@${name.toLowerCase().replace(/\s+/g, '')}`;
+        document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+
+        listenToUsers();
+        listenToMessages(activeChatId);
+      } else {
+        authScreen.classList.remove('hidden');
+        appContainer.classList.add('opacity-30', 'pointer-events-none');
+      }
+    });
+
+    // Firestore Users Listener
+    function listenToUsers() {
+      db.collection(getPublicCollectionPath('users')).onSnapshot((snapshot) => {
+        dmsList.innerHTML = '';
+        let count = 0;
+        snapshot.forEach((doc) => {
+          const uData = doc.data();
+          if (uData.uid !== currentUser.uid) {
+            count++;
+            const div = document.createElement('button');
+            div.className = `w-full px-3 py-2 rounded-xl text-left text-sm flex items-center justify-between hover:bg-slate-900 text-slate-300 transition ${activeChatId === uData.uid ? 'bg-slate-800 text-white' : ''}`;
+            div.innerHTML = `
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-full bg-slate-800 text-sky-400 flex items-center justify-center font-bold text-xs border border-slate-700">
+                  ${(uData.displayName || 'U').charAt(0).toUpperCase()}
+                </div>
+                <span class="truncate">${uData.displayName || 'Unbenannt'}</span>
+              </div>
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            `;
+            div.onclick = () => switchChat(uData.uid, uData.displayName);
+            dmsList.appendChild(div);
+          }
+        });
+        userCount.textContent = count;
+      }, (err) => console.log("User Snapshot Error:", err));
+    }
+
+    // Firestore Messages Listener
+    let unsubscribeMsg = null;
+    function listenToMessages(chatId) {
+      if (!currentUser) return;
+      if (unsubscribeMsg) unsubscribeMsg();
+
+      unsubscribeMsg = db.collection(getPublicCollectionPath(`messages_${chatId}`))
+        .onSnapshot((snapshot) => {
+          const msgs = [];
+          snapshot.forEach(docSnap => {
+            msgs.push({ id: docSnap.id, ...docSnap.data() });
+          });
+          
+          msgs.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+          renderMessages(msgs);
+        }, (err) => console.log("Messages snapshot error:", err));
+    }
+
+    // Render Messages Stream
+    function renderMessages(msgs) {
+      messagesStream.innerHTML = '';
+      if (msgs.length === 0) {
+        messagesStream.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
+            <i class="fa-regular fa-comments text-4xl"></i>
+            <p class="text-sm">Keine Nachrichten vorhanden. Schreibe die erste Nachricht!</p>
+          </div>
+        `;
+        return;
+      }
+
+      msgs.forEach((msg) => {
+        const isSelf = msg.senderId === currentUser.uid;
+        const container = document.createElement('div');
+        container.className = `flex flex-col gap-1 max-w-[85%] md:max-w-[75%] ${isSelf ? 'ml-auto items-end' : 'mr-auto items-start'}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = `p-3.5 rounded-2xl text-sm shadow-md ${
+          isSelf 
+            ? 'bg-sky-500 text-white rounded-br-none' 
+            : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-bl-none'
+        }`;
+
+        bubble.innerHTML = `
+          ${!isSelf ? `<div class="text-[11px] font-bold text-sky-400 mb-1">${msg.senderName}</div>` : ''}
+          <p class="whitespace-pre-wrap leading-relaxed">${escapeHtml(msg.text)}</p>
+          <div class="text-[10px] ${isSelf ? 'text-sky-100' : 'text-slate-400'} text-right mt-1.5 flex items-center justify-end gap-1">
+            <span>${msg.timeStr || ''}</span>
+            ${isSelf ? '<i class="fa-solid fa-check-double text-[9px]"></i>' : ''}
+          </div>
+        `;
+
+        container.appendChild(bubble);
+        messagesStream.appendChild(container);
+      });
+
+      messagesStream.scrollTop = messagesStream.scrollHeight;
+    }
+
+    // Send Message
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = msgInput.value.trim();
+      if (!text || !currentUser) return;
+
+      msgInput.value = '';
+
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      try {
+        await db.collection(getPublicCollectionPath(`messages_${activeChatId}`)).add({
+          text: text,
+          senderId: currentUser.uid,
+          senderName: currentUser.displayName || 'Benutzer',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          timeStr: timeStr
+        });
+      } catch (err) {
+        console.error("Fehler beim Senden:", err);
+      }
+    });
+
+    // Chat Switcher
+    function switchChat(chatId, title = 'Allgemein') {
+      activeChatId = chatId;
+      document.getElementById('currentChatTitle').textContent = title;
+      document.getElementById('currentChatIcon').className = chatId.startsWith('room_') ? 'fa-solid fa-hashtag' : 'fa-solid fa-user';
+      listenToMessages(activeChatId);
+    }
+
+    document.querySelectorAll('.chat-select-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-chat-id');
+        const title = e.currentTarget.innerText.trim();
+        switchChat(id, title);
+      });
+    });
+
+    // WebRTC Video Call Overlay Simulation
+    const callOverlay = document.getElementById('callOverlay');
+    const localVideo = document.getElementById('localVideo');
+
+    document.getElementById('startVideoBtn').addEventListener('click', async () => {
+      callOverlay.classList.remove('hidden');
+      document.getElementById('callTargetName').textContent = document.getElementById('currentChatTitle').textContent;
+      document.getElementById('callStatusText').textContent = "Kamera wird gestartet...";
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localVideo.srcObject = mediaStream;
+        localVideo.classList.remove('hidden');
+        document.getElementById('callStatusText').textContent = "Verbunden (WebRTC Live preview)";
+      } catch (err) {
+        document.getElementById('callStatusText').textContent = "Kamerazugriff fehlgeschlagen.";
+      }
+    });
+
+    document.getElementById('endCallBtn').addEventListener('click', () => {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+      localVideo.classList.add('hidden');
+      callOverlay.classList.add('hidden');
+    });
+
+    // Security Helper
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+
 </body>
 </html>
